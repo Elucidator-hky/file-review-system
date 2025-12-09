@@ -12,12 +12,15 @@
   box-sizing: border-box;
 }
 
-body {
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 #app {
-  min-height: 100vh;
-  background-color: #f5f5f5;
+  width: 100%;
+  height: 100%;
 }
 </style>

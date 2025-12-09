@@ -13,6 +13,10 @@ spring:
     url: jdbc:mysql://localhost:3306/file_review_system?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
     username: root
     password: root123456
+    hikari:
+      # 连接池配置
+      initialization-fail-timeout: 1  # 如果初始化失败，立即抛出异常（默认值会等很久）
+      connection-test-query: SELECT 1  # 启动时测试连接
 
   # Redis配置
   redis:

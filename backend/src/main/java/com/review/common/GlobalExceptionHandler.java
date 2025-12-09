@@ -12,66 +12,44 @@ import javax.validation.ConstraintViolationException;
 import java.util.stream.Collectors;
 
 /**
- * 全局异常处理器
- *
- * @author Claude
- * @date 2025-11-28
+ * 全局异常处理
  */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /**
-     * 业务异常
-     */
     @ExceptionHandler(BusinessException.class)
-    public Result<?> handleBusinessException(BusinessException e) {
-        log.error("业务异常：{}", e.getMessage());
+    public Result<Void> handleBusinessException(BusinessException e) {
+        log.warn("业务异常: {}", e.getMessage());
         return Result.error(e.getCode(), e.getMessage());
     }
 
-    /**
-     * 参数校验异常（RequestBody）
-     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Result<?> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
-        String message = e.getBindingResult().getFieldErrors().stream()
-                .map(FieldError::getDefaultMessage)
-                .collect(Collectors.joining("; "));
-        log.error("参数校验失败：{}", message);
-        return Result.error("VALIDATION_ERROR", message);
+    public Result<Void> handleMethodArgumentNotValid(MethodArgumentNotValidException e) {
+        FieldError fieldError = e.getBindingResult().getFieldError();
+        String message = fieldError != null ? fieldError.getDefaultMessage() : "请求参数不合法";
+        return Result.error("INVALID_PARAM", message);
     }
 
-    /**
-     * 参数校验异常（RequestParam、PathVariable）
-     */
-    @ExceptionHandler(ConstraintViolationException.class)
-    public Result<?> handleConstraintViolationException(ConstraintViolationException e) {
-        String message = e.getConstraintViolations().stream()
-                .map(ConstraintViolation::getMessage)
-                .collect(Collectors.joining("; "));
-        log.error("参数校验失败：{}", message);
-        return Result.error("VALIDATION_ERROR", message);
-    }
-
-    /**
-     * 参数绑定异常
-     */
     @ExceptionHandler(BindException.class)
-    public Result<?> handleBindException(BindException e) {
-        String message = e.getBindingResult().getFieldErrors().stream()
-                .map(FieldError::getDefaultMessage)
-                .collect(Collectors.joining("; "));
-        log.error("参数绑定失败：{}", message);
-        return Result.error("VALIDATION_ERROR", message);
+    public Result<Void> handleBindException(BindException e) {
+        FieldError fieldError = e.getBindingResult().getFieldError();
+        String message = fieldError != null ? fieldError.getDefaultMessage() : "请求参数不合法";
+        return Result.error("INVALID_PARAM", message);
     }
 
-    /**
-     * 系统异常
-     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public Result<Void> handleConstraintViolation(ConstraintViolationException e) {
+        String message = e.getConstraintViolations()
+                .stream()
+                .map(ConstraintViolation::getMessage)
+                .collect(Collectors.joining("，"));
+        return Result.error("INVALID_PARAM", message);
+    }
+
     @ExceptionHandler(Exception.class)
-    public Result<?> handleException(Exception e) {
-        log.error("系统异常：", e);
-        return Result.error("SYSTEM_ERROR", "系统内部错误，请联系管理员");
+    public Result<Void> handleException(Exception e) {
+        log.error("系统异常", e);
+        return Result.error("SERVER_ERROR", "系统开小差了，请稍后再试");
     }
 }
