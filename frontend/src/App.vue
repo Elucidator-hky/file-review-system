@@ -14,13 +14,17 @@
 
 html, body {
   width: 100%;
-  height: 100%;
-  overflow: hidden;
+  min-height: 100%;
+  height: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #f6f8fb;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 #app {
   width: 100%;
-  height: 100%;
+  min-height: 100%;
+  background: #f6f8fb;
 }
 </style>

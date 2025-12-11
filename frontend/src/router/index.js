@@ -5,13 +5,20 @@ import { resolveDefaultRoute, extractRequiredRoles, normalizeRoles } from './rou
 const routes = [
   {
     path: '/',
-    redirect: '/login'
+    // 未登录访问根路径，直接进入指引页
+    redirect: '/guide'
   },
   {
     path: '/login',
     name: 'Login',
     component: () => import('../views/Login.vue'),
     meta: { requiresAuth: false }
+  },
+  {
+    path: '/guide',
+    name: 'Guide',
+    component: () => import('../views/Guide.vue'),
+    meta: { requiresAuth: false, title: '使用说明' }
   },
   // 平台超管路由
   {
@@ -159,7 +166,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth !== false) {
     if (!token || !userInfo) {
       ElMessage.warning('请先登录')
-      next('/login')
+      next('/guide')
       return
     }
 

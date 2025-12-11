@@ -10,14 +10,11 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.util.List;
 import java.time.Duration;
+import java.util.List;
 
 /**
- * Spring MVC配置
- *
- * @author Claude
- * @date 2025-11-28
+ * Spring MVC 配置
  */
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
@@ -37,22 +34,22 @@ public class WebMvcConfig implements WebMvcConfigurer {
     }
 
     /**
-     * 添加拦截器
-     * 配置JWT拦截器，拦截所有请求（除了登录等白名单接口）
+     * 配置 JWT 拦截器，拦截所有请求，放行白名单
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(jwtInterceptor)
-                .addPathPatterns("/**")  // 拦截所有请求
+                .addPathPatterns("/**")
                 .excludePathPatterns(
-                        "/auth/login",              // 登录接口
-                        "/auth/register",           // 注册接口（如果有）
-                        "/doc.html",                // Knife4j文档页面
-                        "/swagger-resources/**",    // Swagger资源
-                        "/v2/api-docs/**",          // API文档
-                        "/webjars/**",              // 静态资源
-                        "/favicon.ico",             // 网站图标
-                        "/error"                    // 错误页面
+                        "/auth/login",
+                        "/auth/register",
+                        "/health",
+                        "/doc.html",
+                        "/swagger-resources/**",
+                        "/v2/api-docs/**",
+                        "/webjars/**",
+                        "/favicon.ico",
+                        "/error"
                 );
     }
 

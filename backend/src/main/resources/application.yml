@@ -66,6 +66,7 @@ minio:
   access-key: minioadmin
   secret-key: minioadmin123
   bucket-name: review-files
+  publicEndpoint: http://localhost:9000
 
 # JWT配置
 jwt:

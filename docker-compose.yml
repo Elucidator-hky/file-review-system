@@ -54,6 +54,7 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      TZ: Asia/Shanghai
     ports:
       - "${MINIO_PORT}:9000"
       - "${MINIO_CONSOLE_PORT}:9001"
@@ -88,6 +89,54 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: file-review-backend:latest
+    container_name: fileReview-backend
+    restart: always
+    depends_on:
+      - mysql
+      - redis
+      - rabbitmq
+      - minio
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_DEFAULT_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_DEFAULT_PASS}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: review-files
+      MINIO_PUBLICENDPOINT: ${MINIO_PUBLIC_ENDPOINT}
+    ports:
+      - "8080:8080"
+    networks:
+      - file-review-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: file-review-frontend:latest
+    container_name: fileReview-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    networks:
+      - file-review-network
+    # 如果需要通过 nginx 反向代理 /api -> backend:8080，请在前端镜像的 nginx 配置中增加代理规则
 
 networks:
   file-review-network:

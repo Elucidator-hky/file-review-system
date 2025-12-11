@@ -18,11 +18,12 @@ import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import java.io.InputStream;
+import java.net.URI;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * MinIO 工具类，封装上传、下载、删除、预签名 URL 等常用能力。
+ * MinIO 工具类，封装上传、下载、删除、预签名 URL 等能力。
  */
 @Slf4j
 @Component
@@ -35,7 +36,7 @@ public class MinioUtil {
     private final MinioProperties minioProperties;
 
     /**
-     * 启动时自动初始化存储桶，避免业务端重复判断。
+     * 启动时初始化存储桶，避免业务端重复判断。
      */
     @PostConstruct
     public void initBucket() {
@@ -58,12 +59,7 @@ public class MinioUtil {
     }
 
     /**
-     * 上传文件到默认桶，未来文件模块可以直接复用。
-     *
-     * @param objectName  对象名称（包含路径）
-     * @param inputStream 文件流
-     * @param size        文件大小
-     * @param contentType MIME 类型
+     * 上传文件到默认桶。
      */
     public void upload(String objectName, InputStream inputStream, long size, String contentType) {
         try {
@@ -83,10 +79,7 @@ public class MinioUtil {
     }
 
     /**
-     * 获取对象输入流，调用方记得关闭流。
-     *
-     * @param objectName 对象名称
-     * @return MinIO 对象流
+     * 下载。
      */
     public InputStream download(String objectName) {
         try {
@@ -101,31 +94,47 @@ public class MinioUtil {
     }
 
     /**
-     * 根据对象名称生成预签名 URL，默认 2 小时有效。
+     * 生成对象的预签名 GET URL，默认有效期 2 小时。
+     * - 若配置了 publicEndpoint，则使用该外部地址做签名，保证浏览器可访问且 Host 与签名一致。
+     * - 否则使用内部 endpoint（minioClient）做签名。
      *
-     * @param objectName 对象名称
-     * @param expireSec  有效期（秒），可为空
-     * @return 预签名地址
+     * @param objectName MinIO 对象名（含路径）
+     * @param expireSec  过期秒数，空或 <=0 则取默认值
+     * @return 预签名可直链下载的 URL
      */
     public String generatePresignedUrl(String objectName, Integer expireSec) {
         try {
+            // 1) 计算有效期，默认 2 小时
             int expire = expireSec == null || expireSec <= 0 ? DEFAULT_URL_EXPIRE_SECONDS : expireSec;
-            return minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
-                    .method(Method.GET)
-                    .bucket(minioProperties.getBucketName())
-                    .object(objectName)
-                    .expiry(expire)
+
+            // 2) 读取对外地址（可为空）
+            String publicEndpoint = minioProperties.getPublicEndpoint();
+
+            // 3) 选择用于签名的 MinioClient：优先用外部可访问的 endpoint，保证 Host 一致
+            MinioClient signer = minioClient;
+            if (StringUtils.hasText(publicEndpoint)) {
+                signer = MinioClient.builder()
+                        .endpoint(publicEndpoint) // 外部可访问地址
+                        .credentials(minioProperties.getAccessKey(), minioProperties.getSecretKey())
+                        .build();
+            }
+
+            // 4) 调用预签名接口生成 URL
+            return signer.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+                    .method(Method.GET)                       // 使用 GET 方式
+                    .bucket(minioProperties.getBucketName())  // 桶名
+                    .object(objectName)                       // 对象名
+                    .expiry(expire)                           // 过期时间
                     .build());
         } catch (Exception e) {
+            // 5) 失败时记录并抛业务异常
             log.error("生成 MinIO 预签名 URL 失败，objectName={}", objectName, e);
             throw new BusinessException("生成文件链接失败，请稍后重试");
         }
     }
 
     /**
-     * 删除已经上传的对象。
-     *
-     * @param objectName 对象名称
+     * 删除对象。
      */
     public void remove(String objectName) {
         try {
@@ -141,9 +150,7 @@ public class MinioUtil {
     }
 
     /**
-     * 查询当前集群全部桶信息，便于排障。
-     *
-     * @return Bucket 列表
+     * 列出全部存储桶，便于排查。
      */
     public List<Bucket> listBuckets() {
         try {
