@@ -73,14 +73,15 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/store/user'
 import { login } from '@/api/auth'
 import { resolveDefaultRoute } from '@/router/routeHelper'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
 // 表单引用
@@ -90,6 +91,17 @@ const loginFormRef = ref(null)
 const loginForm = reactive({
   username: '',
   password: ''
+})
+
+// 从 URL 参数读取账号密码并自动填充
+onMounted(() => {
+  const { username, password } = route.query
+  if (username) {
+    loginForm.username = username
+  }
+  if (password) {
+    loginForm.password = password
+  }
 })
 
 // 表单验证规则
