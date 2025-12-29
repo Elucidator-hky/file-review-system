@@ -518,7 +518,19 @@ const goLogin = () => {
 
 const copyText = async (text) => {
   try {
-    await navigator.clipboard.writeText(text)
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+    } else {
+      // 降级方案：使用 execCommand
+      const textArea = document.createElement('textarea')
+      textArea.value = text
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-9999px'
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+    }
     ElMessage.success('已复制')
   } catch {
     ElMessage.error('复制失败')
